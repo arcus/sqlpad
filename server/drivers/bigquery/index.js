@@ -1,8 +1,8 @@
-const { BigQuery } = require('@google-cloud/bigquery')
-const { formatSchemaQueryResults } = require('../utils')
+const { BigQuery } = require('@google-cloud/bigquery');
+const { formatSchemaQueryResults } = require('../utils');
 
-const id = 'bigquery'
-const name = 'BigQuery'
+const id = 'bigquery';
+const name = 'BigQuery';
 
 /**
  * Run query for connection
@@ -14,25 +14,25 @@ function runQuery(query, connection) {
   const bigquery = new BigQuery({
     projectId: connection.projectId || process.env.GCP_PROJECT,
     keyFilename: connection.keyFile || process.env.GOOGLE_CREDENTIALS_FILE
-  })
+  });
 
   if (query.match(/^\\s*SELECT.*/)) {
     // We need to check if the SQL query has a LIMIT and compare it with our maxrows
-    const match = query.match(/.*LIMIT +(\\d+);?\\s*$/)
+    const match = query.match(/.*LIMIT +(\\d+);?\\s*$/);
     if (!match) {
-      query += ` LIMIT ${connection.maxRows}`
+      query += ` LIMIT ${connection.maxRows}`;
     } else {
-      console.log(match)
+      console.log(match);
     }
   }
 
-  const incomplete = false
+  const incomplete = false;
 
   const options = {
-    query: query,
+    query,
     // Location must match that of the dataset(s) referenced in the query.
     location: connection.datasetLocation
-  }
+  };
 
   return bigquery
     .createQueryJob(options)
@@ -40,14 +40,14 @@ function runQuery(query, connection) {
       // Waits for the query to finish
       return job.getQueryResults({
         maxResults: connection.maxRows
-      })
+      });
     })
     .then(([rows]) => {
       return {
         incomplete,
         rows
-      }
-    })
+      };
+    });
 }
 // TODO: IMPLEMENT ME
 
@@ -113,10 +113,8 @@ function runQuery(query, connection) {
  * @param {*} connection
  */
 function testConnection(connection) {
-  const query = `SELECT * FROM \`${
-    connection.datasetName
-  }.__TABLES_SUMMARY__\` LIMIT 1`
-  return runQuery(query, connection)
+  const query = `SELECT * FROM \`${connection.datasetName}.__TABLES_SUMMARY__\` LIMIT 1`;
+  return runQuery(query, connection);
 }
 
 /**
@@ -127,56 +125,56 @@ function getSchema(connection) {
   const bigquery = new BigQuery({
     projectId: connection.projectId || process.env.GCP_PROJECT,
     keyFilename: connection.keyFile || process.env.GOOGLE_CREDENTIALS_FILE
-  })
+  });
 
   const options = {
     query: `SELECT * FROM \`${connection.datasetName}.__TABLES__\``,
     // Location must match that of the dataset(s) referenced in the query.
     location: connection.datasetLocation
-  }
+  };
 
   bigquery
     .createQueryJob(options)
     .then(([job]) => {
       // Waits for the query to finish
-      return job.getQueryResults()
+      return job.getQueryResults();
     })
     .then(([tables]) => {
-      const promises = []
+      const promises = [];
       for (let i in tables) {
-        const table = tables[i]
+        const table = tables[i];
         promises.push(
           bigquery
             .dataset(connection.datasetName)
             .table(table.table_id)
             .getMetadata()
-        )
+        );
       }
-      return Promise.all(promises)
+      return Promise.all(promises);
     })
     .then(tables => {
       const tableSchema = {
         rows: []
-      }
+      };
       for (let i in tables) {
-        const tableInfo = tables[i][0]
-        if (tableInfo.kind !== 'bigquery#table') continue
-        const datasetId = tableInfo.tableReference.datasetId
-        const tableId = tableInfo.tableReference.tableId
-        const fields = tableInfo.schema.fields
+        const tableInfo = tables[i][0];
+        if (tableInfo.kind !== 'bigquery#table') continue;
+        const datasetId = tableInfo.tableReference.datasetId;
+        const tableId = tableInfo.tableReference.tableId;
+        const fields = tableInfo.schema.fields;
         for (let i in fields) {
-          const field = fields[i]
+          const field = fields[i];
           tableSchema.rows.push({
             table_schema: datasetId,
             table_name: tableId,
             column_name: field.name,
             data_type: field.type
-          })
-          console.log(field)
+          });
+          console.log(field);
         }
       }
-      return formatSchemaQueryResults(tableSchema)
-    })
+      return formatSchemaQueryResults(tableSchema);
+    });
 }
 
 const fields = [
@@ -200,7 +198,7 @@ const fields = [
     formType: 'TEXT',
     label: 'Location for this Dataset'
   }
-]
+];
 
 module.exports = {
   id,
@@ -209,4 +207,4 @@ module.exports = {
   getSchema,
   runQuery,
   testConnection
-}
+};
