@@ -1,7 +1,7 @@
 {
   "name": "sqlpad",
   "version": "4.0.0",
-  "description": "Web app. Write SQL and visualize the results. Supports Postgres, MySQL, SQL Server, Crate, Vertica and SAP HANA.",
+  "description": "Web app. Write SQL and visualize the results. Supports Postgres, MySQL, SQL Server, Crate, Vertica, SAP HANA, and BigQuery.",
   "license": "MIT",
   "engines": {
     "node": ">=12"
@@ -17,7 +17,9 @@
     "presto",
     "vertica",
     "sap",
-    "hana"
+    "hana",
+    "bigquery",
+    "bq"
   ],
   "repository": {
     "type": "git",
@@ -35,6 +37,8 @@
   },
   "dependencies": {
     "@hapi/joi": "^16.1.7",
+    "@google-cloud/bigquery": "^2.0.3",
+    "ajv": "^6.6.1",    
     "bcrypt-nodejs": "0.0.3",
     "body-parser": "^1.19.0",
     "cassandra-driver": "^4.2.0",
@@ -42,6 +46,7 @@
     "errorhandler": "^1.5.1",
     "express": "^4.17.1",
     "express-session": "^1.17.0",
+    "fsevents": "^2.0.1",     
     "hdb": "^0.17.1",
     "helmet": "^3.21.1",
     "ini": "^1.3.5",
