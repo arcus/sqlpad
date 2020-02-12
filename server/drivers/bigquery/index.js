@@ -128,7 +128,7 @@ function getSchema(connection) {
   });
 
   const options = {
-    query: `SELECT * FROM \`${connection.datasetName}.__TABLES__\``,
+    query: `SELECT * FROM ${connection.datasetName}.__TABLES__`,
     // Location must match that of the dataset(s) referenced in the query.
     location: connection.datasetLocation
   };
