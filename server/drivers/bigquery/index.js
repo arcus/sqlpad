@@ -16,13 +16,24 @@ function runQuery(query, connection) {
     keyFilename: connection.keyFile || process.env.GOOGLE_CREDENTIALS_FILE
   });
 
+  let appendedLimit = false;
+
   if (query.match(/^\\s*SELECT.*/)) {
-    // We need to check if the SQL query has a LIMIT and compare it with our maxrows
+    // If the query has no LIMIT, inject our own LIMIT of maxrows + 1.
+    // The actual # of rows returned in this case will be maxrows, but with the `incomplete` flag set.
+    // TODO: I don't know if tacking a LIMIT on at the end will do what we want in all cases. (E.g. UNION?)
     const match = query.match(/.*LIMIT +(\\d+);?\\s*$/);
     if (!match) {
-      query += ` LIMIT ${connection.maxRows}`;
+      appendedLimit = true;
+      query += ` LIMIT ${connection.maxRows + 1}`;
     } else {
-      console.log(match);
+      // TODO: does the user-specific LIMIT override connection.maxrows? (I'm assuming yes for now).
+      const limit = parseInt(match[1], 10);
+      if (limit > connection.maxRows) {
+        console.log(
+          `Detected LIMIT ${limit} greater than connection.maxRows ${connection.maxRows}; honoring the LIMIT`
+        );
+      }
     }
   }
 
@@ -39,7 +50,7 @@ function runQuery(query, connection) {
     .then(([job]) => {
       // Waits for the query to finish
       return job.getQueryResults({
-        maxResults: connection.maxRows
+        maxResults: connection.maxRows + 1
       });
     })
     .then(([rows]) => {
@@ -133,7 +144,7 @@ function getSchema(connection) {
     location: connection.datasetLocation
   };
 
-  bigquery
+  return bigquery
     .createQueryJob(options)
     .then(([job]) => {
       // Waits for the query to finish
@@ -170,7 +181,6 @@ function getSchema(connection) {
             column_name: field.name,
             data_type: field.type
           });
-          console.log(field);
         }
       }
       return formatSchemaQueryResults(tableSchema);
