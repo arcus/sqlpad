@@ -64,14 +64,14 @@ function getSchema(connection) {
     keyFilename: connection.keyFile || process.env.GOOGLE_CREDENTIALS_FILE
   });
 
-  const options = {
-    query: `SELECT * FROM ${connection.datasetName}.__TABLES__`,
+  const query = {
+    query: `SELECT * FROM \`${connection.datasetName}.__TABLES__\``,
     // Location must match that of the dataset(s) referenced in the query.
     location: connection.datasetLocation
   };
 
   return bigquery
-    .createQueryJob(options)
+    .createQueryJob(query)
     .then(([job]) => {
       // Waits for the query to finish
       return job.getQueryResults();
