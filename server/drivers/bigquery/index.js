@@ -7,46 +7,26 @@ const name = 'BigQuery';
 /**
  * Run query for connection
  * Should return { rows, incomplete }
- * @param {string} query
+ * @param {string} queryString
  * @param {object} connection
  */
-function runQuery(query, connection) {
+function runQuery(queryString, connection) {
   const bigquery = new BigQuery({
     projectId: connection.projectId || process.env.GCP_PROJECT,
     keyFilename: connection.keyFile || process.env.GOOGLE_CREDENTIALS_FILE
   });
 
-  let appendedLimit = false;
+  let incomplete = false;
 
-  if (query.match(/^\\s*SELECT.*/)) {
-    // If the query has no LIMIT, inject our own LIMIT of maxrows + 1.
-    // The actual # of rows returned in this case will be maxrows, but with the `incomplete` flag set.
-    // TODO: I don't know if tacking a LIMIT on at the end will do what we want in all cases. (E.g. UNION?)
-    const match = query.match(/.*LIMIT +(\\d+);?\\s*$/);
-    if (!match) {
-      appendedLimit = true;
-      query += ` LIMIT ${connection.maxRows + 1}`;
-    } else {
-      // TODO: does the user-specific LIMIT override connection.maxrows? (I'm assuming yes for now).
-      const limit = parseInt(match[1], 10);
-      if (limit > connection.maxRows) {
-        console.log(
-          `Detected LIMIT ${limit} greater than connection.maxRows ${connection.maxRows}; honoring the LIMIT`
-        );
-      }
-    }
-  }
-
-  const incomplete = false;
-
-  const options = {
-    query,
+  const query = {
+    query: queryString,
     // Location must match that of the dataset(s) referenced in the query.
     location: connection.datasetLocation
   };
 
+  // TODO: should maxRows apply to non-SELECT statements?
   return bigquery
-    .createQueryJob(options)
+    .createQueryJob(query)
     .then(([job]) => {
       // Waits for the query to finish
       return job.getQueryResults({
@@ -54,70 +34,16 @@ function runQuery(query, connection) {
       });
     })
     .then(([rows]) => {
+      if (rows.length > connection.maxRows) {
+        rows.splice(connection.maxRows);
+        incomplete = true;
+      }
       return {
         incomplete,
         rows
       };
     });
 }
-// TODO: IMPLEMENT ME
-
-//   return new Promise((resolve, reject) => {
-//     let incomplete = false
-//     const rows = []
-//
-//     const options = {
-//       query: query,
-//       location: connection.location,
-//     }
-//
-//     const myQueryJob = myConnection.createQueryJob(options)
-//     myQueryJob.getQueryResults()
-//       .then((rows) => {
-//         if (rows.length > connection.maxRows) {
-//           rows.splice(connection.maxRows)
-//           incomplete = true
-//         }
-//         continueOn()
-//       })
-//
-//     myQuery.then((rows) => {
-//       // If we haven't hit the max yet add row to results
-//
-//       // Too many rows
-//       incomplete = true
-//
-//       // Destroy the underlying connection
-//       // Calling end() will wait and eventually time out
-//       myConnection.destroy()
-//       continueOn()
-//     })
-//
-//     myQuery
-//       .on('error', function(err) {
-//         // Handle error,
-//         // an 'end' event will be emitted after this as well
-//         // so we'll call the callback there.
-//         queryError = err
-//       })
-//       .on('result', function(row) {
-//
-//       })
-//       .on('end', function() {
-//         // all rows have been received
-//         // This will not fire if we end the connection early
-//         // myConnection.end()
-//         // myConnection.destroy()
-//         myConnection.end(error => {
-//           if (error) {
-//             console.error('Error ending MySQL connection', error)
-//           }
-//           continueOn()
-//         })
-//       })
-//     })
-//   })
-// }
 
 /**
  * Test connectivity of connection

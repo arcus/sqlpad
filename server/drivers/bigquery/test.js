@@ -16,7 +16,7 @@ const testTable = 'sqlpad_test';
 const dropTable = `DROP TABLE IF EXISTS ${connection.datasetName}.${testTable}`;
 const createTable = `CREATE TABLE ${connection.datasetName}.${testTable} (id int64)`;
 const inserts = `INSERT INTO ${connection.datasetName}.${testTable} (id) VALUES (1), (2), (3)`;
-const testTimeoutMsecs = 10000;
+const testTimeoutMsecs = 15000;
 
 describe('drivers/bigquery', function() {
   this.timeout(testTimeoutMsecs); // Set a large default timeout for all tests because BigQuery can be slow to respond.
@@ -70,26 +70,75 @@ describe('drivers/bigquery', function() {
         limitedConnection
       )
       .then(results => {
-        console.log(`results: ${JSON.stringify(results, null, 2)}`);
         assert(results.incomplete);
         assert.equal(results.rows.length, 2);
       });
   });
 
+  it('supports Standard SQL dialect by default', function() {
+    return bigquery
+      .runQuery(
+        `SELECT CAST(id AS INT64) FROM ${connection.datasetName}.${testTable} WHERE id = 1`,
+        connection
+      )
+      .then(results => {
+        assert(results);
+      });
+  });
+
+  it('throws errors for Legacy SQL', function() {
+    let error;
+    return bigquery
+      .runQuery(
+        `SELECT CAST(id AS INTEGER) FROM ${connection.datasetName}.${testTable} WHERE id = 1`,
+        connection
+      )
+      .then(() => {
+        assert.fail('An error should have been thrown.');
+      })
+      .catch(e => {
+        error = e;
+      })
+      .then(() => {
+        assert(error.toString().includes('Type not found'));
+      });
+  });
+
   it('returns descriptive error message for a missing table', function() {
     let error;
-
     return bigquery
       .runQuery(
         `SELECT * FROM ${connection.datasetName}.missing_table`,
         connection
       )
+      .then(() => {
+        assert.fail('An error should have been thrown.');
+      })
       .catch(e => {
         error = e;
       })
       .then(() => {
-        assert(error);
         assert(error.toString().includes('was not found'));
       });
   });
+});
+
+it('returns descriptive error message for bad syntax', function() {
+  let error;
+
+  return bigquery
+    .runQuery(
+      `SELECT * FLARB ${connection.datasetName}.${testTable}`,
+      connection
+    )
+    .then(() => {
+      assert.fail('An error should have been thrown.');
+    })
+    .catch(e => {
+      error = e;
+    })
+    .then(() => {
+      assert(error);
+      assert(error.toString().includes('Syntax error'));
+    });
 });
