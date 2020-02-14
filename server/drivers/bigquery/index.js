@@ -78,8 +78,7 @@ function getSchema(connection) {
     })
     .then(([tables]) => {
       const promises = [];
-      for (let i in tables) {
-        const table = tables[i];
+      for (let table of tables) {
         promises.push(
           bigquery
             .dataset(connection.datasetName)
@@ -93,14 +92,13 @@ function getSchema(connection) {
       const tableSchema = {
         rows: []
       };
-      for (let i in tables) {
-        const tableInfo = tables[i][0];
-        if (tableInfo.kind !== 'bigquery#table') continue;
+      for (let table of tables) {
+        const tableInfo = table[0];
+        if (tableInfo.kind !== 'bigquery#table') continue; // eslint-disable-line no-continue
         const datasetId = tableInfo.tableReference.datasetId;
         const tableId = tableInfo.tableReference.tableId;
         const fields = tableInfo.schema.fields;
-        for (let i in fields) {
-          const field = fields[i];
+        for (let field of fields) {
           tableSchema.rows.push({
             table_schema: datasetId,
             table_name: tableId,
