@@ -5,23 +5,30 @@ const id = 'bigquery';
 const name = 'BigQuery';
 
 /**
+ * Return BiqQuery API object.
+ * @param {object} connection
+ */
+function newBigQuery(connection) {
+  return new BigQuery({
+    projectId: connection.projectId,
+    keyFilename: connection.keyFile,
+    // Location must match that of the dataset(s) referenced in the query.
+    location: connection.datasetLocation
+  });
+}
+
+/**
  * Run query for connection
  * Should return { rows, incomplete }
  * @param {string} queryString
  * @param {object} connection
  */
-function runQuery(queryString, connection) {
-  const bigquery = new BigQuery({
-    projectId: connection.projectId || process.env.GCP_PROJECT,
-    keyFilename: connection.keyFile || process.env.GOOGLE_CREDENTIALS_FILE
-  });
-
+function runQuery(queryString, connection = {}) {
+  const bigquery = newBigQuery(connection);
   let incomplete = false;
 
   const query = {
-    query: queryString,
-    // Location must match that of the dataset(s) referenced in the query.
-    location: connection.datasetLocation
+    query: queryString
   };
 
   // TODO: should maxRows apply to non-SELECT statements?
@@ -29,9 +36,11 @@ function runQuery(queryString, connection) {
     .createQueryJob(query)
     .then(([job]) => {
       // Waits for the query to finish
-      return job.getQueryResults({
-        maxResults: connection.maxRows + 1
-      });
+      const options = {};
+      if (connection.hasOwnProperty('maxRows') && connection.maxRows !== null) {
+        options.maxResults = connection.maxRows + 1;
+      }
+      return job.getQueryResults(options);
     })
     .then(([rows]) => {
       if (rows.length > connection.maxRows) {
@@ -59,10 +68,7 @@ function testConnection(connection) {
  * @param {*} connection
  */
 function getSchema(connection) {
-  const bigquery = new BigQuery({
-    projectId: connection.projectId || process.env.GCP_PROJECT,
-    keyFilename: connection.keyFile || process.env.GOOGLE_CREDENTIALS_FILE
-  });
+  const bigquery = newBigQuery(connection);
 
   const query = {
     query: `SELECT * FROM \`${connection.datasetName}.__TABLES__\``,
