@@ -7,17 +7,17 @@ fi
 
 if [ -z "${BIGQUERY_TEST_GCP_PROJECT_ID}" ]; then
   echo "Must set BIGQUERY_TEST_GCP_PROJECT_ID with Google Cloud Project Name for testing"
-  exit 2
+  exit 1
 fi
 
 if [ -z "${BIGQUERY_TEST_DATASET_NAME}" ]; then
   echo "Must set BIGQUERY_TEST_DATASET_NAME with BigQuery Dataset Name"
-  exit 3
+  exit 1
 fi
 
 if [ -z "${BIGQUERY_TEST_DATASET_LOCATION}" ]; then
-  echo "Must set BIGQUERY_TEST_DATASET_LOCATION with Google Cloud Project Region e.g. asia-southeast1"
-  exit 4
+  echo "Must set BIGQUERY_TEST_DATASET_LOCATION with Google Cloud Project Region e.g. US"
+  exit 1
 fi
 
 npx mocha ./test.js
