@@ -33,6 +33,10 @@ function runQuery(queryString, connection = {}) {
     query: queryString
   };
 
+  if (connection.datasetName) {
+    query.defaultDataset = { datasetId: connection.datasetName };
+  }
+
   // TODO: should maxRows apply to non-SELECT statements?
   return bigquery
     .createQueryJob(query)
