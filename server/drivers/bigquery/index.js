@@ -26,6 +26,8 @@ function newBigQuery(connection) {
 function runQuery(queryString, connection = {}) {
   const bigquery = newBigQuery(connection);
   let incomplete = false;
+  const isMaxRowsSpecified =
+    connection.hasOwnProperty('maxRows') && connection.maxRows !== null;
 
   const query = {
     query: queryString
@@ -37,13 +39,13 @@ function runQuery(queryString, connection = {}) {
     .then(([job]) => {
       // Waits for the query to finish
       const options = {};
-      if (connection.hasOwnProperty('maxRows') && connection.maxRows !== null) {
+      if (isMaxRowsSpecified) {
         options.maxResults = connection.maxRows + 1;
       }
       return job.getQueryResults(options);
     })
     .then(([rows]) => {
-      if (rows.length > connection.maxRows) {
+      if (isMaxRowsSpecified && rows.length > connection.maxRows) {
         rows.splice(connection.maxRows);
         incomplete = true;
       }
