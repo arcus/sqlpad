@@ -3,6 +3,7 @@ const { formatSchemaQueryResults } = require('../utils');
 
 const id = 'bigquery';
 const name = 'BigQuery';
+const QUERY_TIMEOUT_SECONDS = 300; // Should be <= to SQLPAD_TIMEOUT_SECONDS (backend timeout)
 
 /**
  * Return BiqQuery API object.
@@ -41,8 +42,9 @@ function runQuery(queryString, connection = {}) {
   return bigquery
     .createQueryJob(query)
     .then(([job]) => {
-      // Waits for the query to finish
-      const options = {};
+      // Wait for the query to finish.
+      // TODO: should cancel the query job if it times out.
+      const options = { timeoutMs: QUERY_TIMEOUT_SECONDS * 1000 };
       if (isMaxRowsSpecified) {
         options.maxResults = connection.maxRows + 1;
       }
