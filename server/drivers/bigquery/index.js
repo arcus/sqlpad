@@ -1,9 +1,10 @@
 const { BigQuery } = require('@google-cloud/bigquery');
 const { formatSchemaQueryResults } = require('../utils');
+const config = require('../../lib/config');
 
 const id = 'bigquery';
 const name = 'BigQuery';
-const QUERY_TIMEOUT_SECONDS = 300; // Should be <= to SQLPAD_TIMEOUT_SECONDS (backend timeout)
+const timeoutSeconds = config.get('timeoutSeconds'); // This is the HTTP connection timeout used by the SQLPad backend
 
 /**
  * Return BiqQuery API object.
@@ -27,6 +28,8 @@ function newBigQuery(connection) {
 function runQuery(queryString, connection = {}) {
   const bigquery = newBigQuery(connection);
   let incomplete = false;
+  const t1 = process.hrtime();
+
   const isMaxRowsSpecified =
     connection.hasOwnProperty('maxRows') && connection.maxRows !== null;
 
@@ -43,18 +46,25 @@ function runQuery(queryString, connection = {}) {
     .createQueryJob(query)
     .then(([job]) => {
       // Wait for the query to finish.
-      // TODO: should cancel the query job if it times out.
-      const options = { timeoutMs: QUERY_TIMEOUT_SECONDS * 1000 };
+      const options = { timeoutMs: timeoutSeconds * 1000 };
       if (isMaxRowsSpecified) {
         options.maxResults = connection.maxRows + 1;
       }
       return job.getQueryResults(options);
     })
     .then(([rows]) => {
+      if (rows.length === 0) {
+        const t2 = process.hrtime(t1);
+        if (t2[0] >= timeoutSeconds) {
+          throw new Error(`Query timed out after ${timeoutSeconds} seconds.`);
+        }
+      }
+
       if (isMaxRowsSpecified && rows.length > connection.maxRows) {
         rows.splice(connection.maxRows);
         incomplete = true;
       }
+
       return {
         incomplete,
         rows
