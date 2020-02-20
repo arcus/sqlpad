@@ -11,7 +11,6 @@ const connection = {
   maxRows: 10
 };
 
-// const checkTableSize = `SELECT size_bytes FROM \`${connection.datasetName}.__TABLES__\` WHERE table_id='test'`;
 const testTable = 'sqlpad_test';
 const dropTable = `DROP TABLE IF EXISTS ${connection.datasetName}.${testTable}`;
 const createTable = `CREATE TABLE ${connection.datasetName}.${testTable} (id int64)`;
@@ -21,7 +20,7 @@ const testTimeoutMsecs = 15000;
 describe('drivers/bigquery', function() {
   this.timeout(testTimeoutMsecs); // Set a large default timeout for all tests because BigQuery can be slow to respond.
 
-  before(function() {
+  before(function(done) {
     if (
       connection.projectId &&
       connection.datasetName &&
@@ -31,7 +30,10 @@ describe('drivers/bigquery', function() {
       bigquery
         .runQuery(dropTable, connection)
         .then(() => bigquery.runQuery(createTable, connection))
-        .then(() => bigquery.runQuery(inserts, connection));
+        .then(() => bigquery.runQuery(inserts, connection))
+        .then(function() {
+          done();
+        });
     } else {
       console.log(
         'Define BIGQUERY_TEST_GCP_PROJECT_ID, BIGQUERY_TEST_DATASET_NAME, BIGQUERY_TEST_CREDENTIALS_FILE, and BIGQUERY_TEST_DATASET_LOCATION to run the bigquery driver tests'
