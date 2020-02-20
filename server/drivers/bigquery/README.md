@@ -1,6 +1,14 @@
-# Testing the BigQuery driver
+# BigQuery Driver
 
-## Running unit tests with mocha.js
+## Notes
+
+- This incorporates [prior incomplete work by `hongkongkiwi` on GitHub](https://github.com/hongkongkiwi/sqlpad/commit/d731b24b6c1e7a2ccc18e8528263e830bca17660) (last commit on Dec 7, 2018.
+- Queries time out after 5 minutes. When a query times out, an error is thrown, and the error message is displayed in the results area of SQLPad.
+- The driver uses the [Standard SQL dialect](https://cloud.google.com/bigquery/docs/reference/standard-sql/enabling-standard-sql), which is more powerful and standards-compliant than the older BigQuery Legacy SQL dialect. (The latter is still the default dialect of the `bq` CLI tool).
+
+## Testing
+
+### Running unit tests with mocha.js
 
 Tests are automatically skipped if the required environment variables haven't been defined.
 
@@ -19,7 +27,7 @@ The BigQuery driver cannot be tested without creating a project in Google Cloud.
     - BIGQUERY_TEST_DATASET_LOCATION - Google Cloud project region e.g. "US"
 - Run `sh test.sh`.
 
-## Manually testing the BigQuery driver _in situ_ within `SQLPad`:
+### Manually testing the BigQuery driver _in situ_ within `SQLPad`:
 
 - Make sure that `scripts/build.sh` has been run to install dependencies.
 - `export SQLPAD_ADMIN=admin`
